@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Papelera de Reciclaje{% endblock %}
+
+{% block content %}
+<h2>🗑️ Papelera de Reciclaje</h2>
+
+<a href="{% url 'client_list' %}" style="margin-bottom:20px; display:inline-block;">
+    ← Volver a clientes
+</a>
+
+{% if clients %}
+<table border="1" cellpadding="5" style="margin-top:10px; width:100%;">
+    <thead>
+        <tr style="background:#f0f0f0;">
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Eliminado el</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for client in clients %}
+        <tr>
+            <td>{{ client.first_name }} {{ client.last_name }}</td>
+            <td>{{ client.phone }}</td>
+            <td>{{ client.deleted_at|date:"d/m/Y H:i" }}</td>
+            <td>
+                <a href="{% url 'client_restore' client.id %}" style="color:green;">↺ Restaurar</a>
+                <span style="margin:0 10px;">|</span>
+                <a href="{% url 'client_permanent_delete' client.id %}" style="color:red;">🗑️ Eliminar permanentemente</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No hay clientes en la papelera</p>
+{% endif %}
+
+{% if clients %}
+<div style="margin-top:20px; padding:10px; background:#ffe6e6; border:1px solid #ff9999;">
+    <p><strong>⚠️ Advertencia:</strong> Los clientes en la papelera se eliminarán automáticamente después de 30 días.</p>
+</div>
+{% endif %}
+{% endblock %}

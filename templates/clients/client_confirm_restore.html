@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Restaurar Cliente{% endblock %}
+
+{% block content %}
+<h2>↺ Restaurar Cliente</h2>
+
+<div style="padding:20px; border:2px solid #4CAF50; border-radius:5px; max-width:500px;">
+    <p>¿Deseas restaurar al cliente <strong>{{ client }}</strong>?</p>
+    <p>📞 Teléfono: {{ client.phone }}</p>
+    <p>🗑️ Eliminado: {{ client.deleted_at|date:"d/m/Y H:i" }}</p>
+    
+    <form method="post" style="margin-top:20px;">
+        {% csrf_token %}
+        <button type="submit" style="background:#4CAF50; color:white; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">
+            Sí, restaurar cliente
+        </button>
+        <a href="{% url 'client_trash' %}" style="margin-left:10px; padding:10px 20px; background:#ccc; color:black; border-radius:4px; text-decoration:none;">
+            Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}

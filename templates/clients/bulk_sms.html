@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}SMS Masivo{% endblock %}
+
+{% block content %}
+
+<style>
+.sms-container {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.card {
+    width: 100%;
+    max-width: 900px;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.title {
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.actions {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.table-wrapper {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.clients-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.clients-table th,
+.clients-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.clients-table thead {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.clients-table tr:hover {
+    background-color: #fafafa;
+}
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.badge-danger {
+    background-color: #ffe5e5;
+    color: #d32f2f;
+}
+
+.badge-warning {
+    background-color: #fff3cd;
+    color: #ff9800;
+}
+
+.message-section {
+    margin-bottom: 20px;
+}
+
+.message-section label {
+    font-weight: 600;
+}
+
+.message-section textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    resize: none;
+    font-family: inherit;
+    margin-top: 8px;
+}
+
+.info-text {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.btn {
+    padding: 10px 18px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #43a047;
+}
+
+.btn-secondary {
+    background-color: #1976d2;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #1565c0;
+}
+
+.btn-outline {
+    background: white;
+    border: 1px solid #ccc;
+}
+
+.btn-outline:hover {
+    background: #f5f5f5;
+}
+
+.empty-state {
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #555;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+</style>
+
+<div class="sms-container">
+    <div class="card">
+        <h2 class="title">📨 Envío de SMS Masivo</h2>
+        <p class="subtitle">Clientes con pago pendiente o vencido</p>
+
+        <form method="post" action="{% url 'bulk_sms' %}">
+            {% csrf_token %}
+            
+            {% if clients %}
+            
+            <div class="actions">
+                <button type="button" class="btn btn-secondary" onclick="selectAll()">✓ Seleccionar todos</button>
+                <button type="button" class="btn btn-outline" onclick="deselectAll()">✗ Deseleccionar todos</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="clients-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Próximo Pago</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for client in clients %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="clients" value="{{ client.id }}" checked>
+                            </td>
+                            <td>{{ client.first_name }} {{ client.last_name }}</td>
+                            <td>{{ client.phone }}</td>
+                            <td>
+                                {% if client.payment_status == 'overdue' %}
+                                    <span class="badge badge-danger">Vencido</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ client.next_payment_date|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="message-section">
+                <label for="message">Mensaje</label>
+                <textarea id="message" name="message" rows="6" required>Hola, le recordamos que su membresía del gimnasio está próxima a vencer. 
+Por favor realice el pago para mantener su acceso activo.
+
+- Gimnasio Fitness Pro</textarea>
+                <p class="info-text">
+                    El mensaje se enviará a {{ clients.count }} cliente(s)
+                </p>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                📨 Enviar SMS a seleccionados
+            </button>
+
+            {% else %}
+            <div class="empty-state">
+                ✅ No hay clientes con pagos pendientes o vencidos.
+            </div>
+            {% endif %}
+        </form>
+
+        <a href="{% url 'client_list' %}" class="back-link">
+            ← Volver a clientes
+        </a>
+    </div>
+</div>
+
+<script>
+function selectAll() {
+    document.querySelectorAll('input[name="clients"]').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function deselectAll() {
+    document.querySelectorAll('input[name="clients"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+</script>
+
+{% endblock %}

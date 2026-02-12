@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Clientes - Gym System{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item active" aria-current="page">
+        <i class="fas fa-users me-1"></i>Clientes
+    </li>
+{% endblock %}
+
+{% block page_title %}Gestión de Clientes{% endblock %}
+{% block page_subtitle %}Administra todos los clientes del gimnasio{% endblock %}
+
+{% block header_actions %}
+    <div class="btn-group">
+        <a href="{% url 'client_create' %}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-1"></i> Nuevo Cliente
+        </a>
+        <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+            <span class="visually-hidden">Más opciones</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <a class="dropdown-item" href="{% url 'bulk_sms' %}">
+                    <i class="fas fa-sms me-2"></i> SMS Masivo
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{% url 'check_payments' %}">
+                    <i class="fas fa-clock me-2"></i> Verificar Pagos
+                </a>
+            </li>
+            {% if user.role == 'admin' %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item text-danger" href="{% url 'client_trash' %}">
+                    <i class="fas fa-trash me-2"></i> Papelera
+                    <span class="badge bg-danger ms-2">{{ deleted_count }}</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros y búsqueda -->
+<div class="card mb-4 fade-in">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Buscar por nombre, teléfono, email..." 
+                           value="{{ search_query }}">
+                    <button type="submit" class="btn btn-primary">
+                        Buscar
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="">Todos los estados</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Pagado</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pendiente</option>
+                    <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Vencido</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    {% if search_query or status_filter %}
+                    <a href="{% url 'client_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i> Limpiar
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de clientes -->
+<div class="card fade-in">
+    <div class="card-body">
+        {% if clients %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Contacto</th>
+                        <th>Estado</th>
+                        <th>Pagos</th>
+                        <th>Último acceso</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in clients %}
+                    <tr class="{% if c.payment_status == 'overdue' %}table-warning{% endif %}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-3" style="width: 40px; height: 40px; background-color: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                    {{ c.first_name|first|upper }}
+                                </div>
+                                <div>
+                                    <strong>{{ c.first_name }} {{ c.last_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {% if c.active %}
+                                        <span class="text-success">
+                                            <i class="fas fa-check-circle"></i> Activo
+                                        </span>
+                                        {% else %}
+                                        <span class="text-danger">
+                                            <i class="fas fa-times-circle"></i> Inactivo
+                                        </span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <i class="fas fa-phone me-2 text-muted"></i>{{ c.phone }}
+                                {% if c.email %}
+                                <br>
+                                <small>
+                                    <i class="fas fa-envelope me-2 text-muted"></i>{{ c.email }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if c.payment_status == 'paid' %}
+                            <span class="badge badge-paid">
+                                <i class="fas fa-check me-1"></i> Pagado
+                            </span>
+                            {% elif c.payment_status == 'pending' %}
+                            <span class="badge badge-pending">
+                                <i class="fas fa-clock me-1"></i> Pendiente
+                            </span>
+                            {% else %}
+                            <span class="badge badge-overdue">
+                                <i class="fas fa-exclamation-triangle me-1"></i> Vencido
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if c.last_payment_date %}
+                            <small class="text-muted d-block">Último pago:</small>
+                            <strong>{{ c.last_payment_date|date:"d/m/Y" }}</strong>
+                            <br>
+                            <small class="text-muted d-block">Próximo:</small>
+                            <strong>{{ c.next_payment_date|date:"d/m/Y" }}</strong>
+                            {% else %}
+                            <span class="text-muted">Sin pagos</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ c.created_at|date:"d/m/Y" }}
+                            <br>
+                            <small class="text-muted">{{ c.created_at|timesince }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm float-end">
+                                <a href="{% url 'client_edit' c.id %}" class="btn btn-outline-primary" 
+                                   title="Editar" data-bs-toggle="tooltip">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'renew_membership' c.id %}" class="btn btn-outline-success" 
+                                   title="Renovar" data-bs-toggle="tooltip">
+                                    <i class="fas fa-sync-alt"></i>
+                                </a>
+                                <a href="{% url 'send_client_sms' c.id %}" class="btn btn-outline-info" 
+                                   title="Enviar SMS" data-bs-toggle="tooltip">
+                                    <i class="fas fa-sms"></i>
+                                </a>
+                                <a href="{% url 'client_soft_delete' c.id %}" class="btn btn-outline-danger" 
+                                   title="Eliminar" data-bs-toggle="tooltip">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted">
+                Mostrando {{ clients.count }} de {{ clients.count }} clientes
+            </div>
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-end mb-0">
+                    <!-- Agregar paginación si es necesario -->
+                </ul>
+            </nav>
+        </div>
+        
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-users fa-4x text-muted"></i>
+            </div>
+            <h4 class="text-muted mb-3">No hay clientes registrados</h4>
+            <p class="text-muted mb-4">Comienza agregando tu primer cliente al sistema</p>
+            <a href="{% url 'client_create' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-user-plus me-2"></i> Agregar Primer Cliente
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Inicializar tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

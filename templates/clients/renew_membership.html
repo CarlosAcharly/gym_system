@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Renovar Membresía{% endblock %}
+
+{% block content %}
+<h2>🔄 Renovar Membresía</h2>
+
+<div style="padding:20px; border:1px solid #ddd; border-radius:5px; max-width:500px;">
+    <p>Cliente: <strong>{{ client }}</strong></p>
+    <p>📞 Teléfono: {{ client.phone }}</p>
+    <p>📅 Último pago: {{ client.last_payment_date|date:"d/m/Y"|default:"No registrado" }}</p>
+    <p>📅 Próximo pago: {{ client.next_payment_date|date:"d/m/Y"|default:"No registrado" }}</p>
+    <p>Estado: 
+        {% if client.payment_status == 'paid' %}
+            <span style="color:green;">✔ Pagado</span>
+        {% elif client.payment_status == 'pending' %}
+            <span style="color:orange;">⏰ Pendiente</span>
+        {% else %}
+            <span style="color:red;">❌ Vencido</span>
+        {% endif %}
+    </p>
+    
+    <div style="margin:20px 0; padding:15px; background:#e6f7ff; border-left:4px solid #1890ff;">
+        <p><strong>⚠️ Atención:</strong> Al renovar la membresía:</p>
+        <ul>
+            <li>Se registrará el pago como realizado hoy</li>
+            <li>La próxima fecha de pago será en 30 días</li>
+            <li>El estado cambiará a "Pagado"</li>
+            <li>El cliente se reactivará si estaba inactivo</li>
+        </ul>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div style="margin:15px 0;">
+            <label>
+                <input type="checkbox" name="send_notification" checked>
+                Enviar notificación por SMS
+            </label>
+        </div>
+        
+        <button type="submit" style="background:#1890ff; color:white; padding:10px 30px; border:none; border-radius:4px; cursor:pointer;">
+            ✅ Renovar por 30 días
+        </button>
+        <a href="{% url 'client_list' %}" style="margin-left:10px; padding:10px 20px; background:#ccc; color:black; border-radius:4px; text-decoration:none;">
+            Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}

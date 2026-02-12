@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gym System | Login</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+
+<div class="background" style="background-image: url('{% static 'img/back-gym.jpg' %}')"></div>
+
+<div class="login-container">
+    <h2>Gym System</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="input-group">
+            <label>Usuario</label>
+            {{ form.username }}
+        </div>
+
+        <div class="input-group">
+            <label>Contraseña</label>
+            {{ form.password }}
+        </div>
+
+        <button type="submit">Iniciar sesión</button>
+
+        {% if form.errors %}
+            <p class="error">Usuario o contraseña incorrectos</p>
+        {% endif %}
+    </form>
+</div>
+
+</body>
+</html>

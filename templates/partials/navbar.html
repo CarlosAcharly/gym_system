@@ -1,0 +1,172 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);">        <a class="navbar-brand fw-bold" href="{% url 'home' %}">
+            <i class="fas fa-dumbbell me-2"></i>
+            <span class="text-warning">ARCADIA's</span>SYSTEM
+        </a>
+        
+        <!-- Mobile Toggle -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- Navbar Items -->
+        <div class="collapse navbar-collapse" id="navbarMain">
+            <!-- Left Side -->
+            <ul class="navbar-nav me-auto">
+                {% if user.is_authenticated %}
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}">
+                            <i class="fas fa-home me-1"></i> Inicio
+                        </a>
+                    </li>
+                    
+                    <!-- Clients -->
+                    {% if user.role == 'admin' or user.role == 'recep' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/clients/' in request.path %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-users me-1"></i> Clientes
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'client_list' %}">
+                                    <i class="fas fa-list me-2"></i> Lista de Clientes
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'client_create' %}">
+                                    <i class="fas fa-user-plus me-2"></i> Nuevo Cliente
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'bulk_sms' %}">
+                                    <i class="fas fa-sms me-2"></i> SMS Masivo
+                                </a>
+                            </li>
+                            {% if user.role == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'client_trash' %}">
+                                    <i class="fas fa-trash me-2"></i> Papelera
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Admin Only 
+                    {% if user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/" target="_blank">
+                            <i class="fas fa-cogs me-1"></i> Admin
+                        </a>
+                    </li>
+                    {% endif %}-->
+                {% endif %}
+            </ul>
+            
+            <!-- Right Side -->
+            <ul class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                    <!-- User Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <div class="avatar-circle me-2" style="width: 32px; height: 32px; background-color: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                {{ user.username|first|upper }}
+                            </div>
+                            <span class="d-none d-md-inline">{{ user.username }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <span class="dropdown-item-text">
+                                    <small class="text-muted">Conectado como</small><br>
+                                    <strong>{{ user.get_full_name|default:user.username }}</strong>
+                                </span>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-user-cog me-2"></i> Mi Perfil
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-cog me-2"></i> Configuración
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Quick Stats -->
+                    <li class="nav-item d-none d-lg-block">
+                        <div class="nav-link">
+                            <small class="text-light">
+                                <i class="fas fa-clock me-1"></i>
+                                <span id="current-time"></span>
+                            </small>
+                        </div>
+                    </li>
+                    
+                {% else %}
+                    <!-- Login Link -->
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light" href="{% url 'login' %}">
+                            <i class="fas fa-sign-in-alt me-1"></i> Iniciar Sesión
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Time Script -->
+<script>
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        const dateString = now.toLocaleDateString('es-ES', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short'
+        });
+        
+        const timeElement = document.getElementById('current-time');
+        if (timeElement) {
+            timeElement.textContent = `${dateString} ${timeString}`;
+        }
+    }
+    
+    // Update time every second
+    updateTime();
+    setInterval(updateTime, 1000);
+</script>
+
+<!-- Breadcrumb -->
+{% if user.is_authenticated and not request.path == '/' %}
+<nav aria-label="breadcrumb" class="bg-light border-bottom py-2">
+    <div class="container">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}" class="text-decoration-none">
+                    <i class="fas fa-home"></i>
+                </a>
+            </li>
+            {% block breadcrumb %}{% endblock %}
+        </ol>
+    </div>
+</nav>
+{% endif %}
