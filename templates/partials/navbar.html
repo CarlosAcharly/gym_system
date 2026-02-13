@@ -1,7 +1,10 @@
 <!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);">        <a class="navbar-brand fw-bold" href="{% url 'home' %}">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);">
+    <div class="container-fluid">
+        <!-- Brand Logo -->
+        <a class="navbar-brand fw-bold" href="{% url 'home' %}">
             <i class="fas fa-dumbbell me-2"></i>
-            <span class="text-warning">ARCADIA's</span>SYSTEM
+            <span class="text-warning">Gym</span>SYSTEM
         </a>
         
         <!-- Mobile Toggle -->
@@ -56,20 +59,91 @@
                     </li>
                     {% endif %}
                     
-                    <!-- Admin Only 
+                    <!-- Jumping Module -->
+                    {% if user.role == 'admin' or user.role == 'recep' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/jumping/' in request.path %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-trampoline me-1"></i> Jumping
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/jumping/' %}active{% endif %}" 
+                                   href="{% url 'jumping:dashboard' %}">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'jumping:class_list' %}">
+                                    <i class="fas fa-list me-2"></i> Lista de Clases
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'jumping:class_create' %}">
+                                    <i class="fas fa-plus-circle me-2"></i> Nueva Clase
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'jumping:weekly_schedule' %}">
+                                    <i class="fas fa-calendar-alt me-2"></i> Horario Semanal
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'jumping:booking_list' %}">
+                                    <i class="fas fa-calendar-check me-2"></i> Reservas
+                                </a>
+                            </li>
+                            
+                            <!-- Sección de Administración (solo admin) -->
+                            {% if user.role == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'jumping:instructor_list' %}">
+                                    <i class="fas fa-chalkboard-teacher me-2"></i> Instructores
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'jumping:location_list' %}">
+                                    <i class="fas fa-map-marker-alt me-2"></i> Ubicaciones
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'jumping:class_report' %}">
+                                    <i class="fas fa-chart-bar me-2"></i> Reportes
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Admin Only (comentado pero disponible) -->
                     {% if user.role == 'admin' %}
-                    <li class="nav-item">
+                    <!-- <li class="nav-item">
                         <a class="nav-link" href="/admin/" target="_blank">
                             <i class="fas fa-cogs me-1"></i> Admin
                         </a>
-                    </li>
-                    {% endif %}-->
+                    </li> -->
+                    {% endif %}
                 {% endif %}
             </ul>
             
             <!-- Right Side -->
             <ul class="navbar-nav ms-auto">
                 {% if user.is_authenticated %}
+                    <!-- Quick Stats Badge para Jumping (opcional) -->
+                    {% if '/jumping/' in request.path %}
+                    <li class="nav-item d-none d-lg-block">
+                        <div class="nav-link">
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-trampoline me-1"></i> Modulo Jumping
+                            </span>
+                        </div>
+                    </li>
+                    {% endif %}
+                    
                     <!-- User Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" 
@@ -78,6 +152,11 @@
                                 {{ user.username|first|upper }}
                             </div>
                             <span class="d-none d-md-inline">{{ user.username }}</span>
+                            {% if user.role == 'admin' %}
+                                <span class="badge bg-danger ms-2">Admin</span>
+                            {% elif user.role == 'recep' %}
+                                <span class="badge bg-primary ms-2">Recep</span>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
@@ -153,6 +232,19 @@
     // Update time every second
     updateTime();
     setInterval(updateTime, 1000);
+    
+    // Marcar enlaces activos en dropdowns
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentPath = window.location.pathname;
+        
+        // Para dropdown de Jumping
+        if (currentPath.includes('/jumping/')) {
+            const jumpingDropdown = document.querySelector('a[href*="jumping"]');
+            if (jumpingDropdown) {
+                jumpingDropdown.classList.add('active');
+            }
+        }
+    });
 </script>
 
 <!-- Breadcrumb -->

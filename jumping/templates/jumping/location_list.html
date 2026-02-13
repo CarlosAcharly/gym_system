@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Ubicaciones - Jumping{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:dashboard' %}" class="text-decoration-none">Jumping</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Ubicaciones</li>
+{% endblock %}
+
+{% block page_title %}
+    <i class="fas fa-map-marker-alt me-2 text-primary"></i>Ubicaciones
+{% endblock %}
+
+{% block page_subtitle %}
+    Gestiona las sedes y ubicaciones para las clases de Jumping
+{% endblock %}
+
+{% block header_actions %}
+    <div class="btn-group">
+        <a href="{% url 'jumping:location_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> Nueva Ubicación
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="row fade-in">
+    {% if locations %}
+        {% for location in locations %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm hover-card {% if not location.is_active %}border-secondary opacity-75{% endif %}">
+                <div class="card-header {% if location.is_active %}bg-primary{% else %}bg-secondary{% endif %} text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        {{ location.name }}
+                    </h5>
+                    {% if not location.is_active %}
+                        <span class="badge bg-dark">Inactiva</span>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="mb-2">
+                            <i class="fas fa-map-pin me-2 text-muted"></i>
+                            {{ location.address }}
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-phone me-2 text-muted"></i>
+                            {{ location.phone }}
+                        </p>
+                        {% if location.email %}
+                        <p class="mb-2">
+                            <i class="fas fa-envelope me-2 text-muted"></i>
+                            {{ location.email }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <span class="d-block fw-bold">{{ location.total_classes }}</span>
+                                <small class="text-muted">Clases totales</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <span class="d-block fw-bold">{{ location.active_classes }}</span>
+                            <small class="text-muted">Clases activas</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-sun text-warning me-1"></i>
+                            <small>{{ location.opening_time|time:"H:i" }}</small>
+                            <br>
+                            <i class="fas fa-moon text-info me-1"></i>
+                            <small>{{ location.closing_time|time:"H:i" }}</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-info">
+                                <i class="fas fa-users me-1"></i>{{ location.capacity }} pers.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="btn-group w-100">
+                        <a href="{% url 'jumping:location_edit' location.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </a>
+                        <a href="{% url 'jumping:location_delete' location.id %}" class="btn btn-outline-danger">
+                            <i class="fas fa-trash me-1"></i> Eliminar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-map-marked-alt fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay ubicaciones registradas</h5>
+            <p class="text-muted mb-4">Comienza agregando una nueva sede</p>
+            <a href="{% url 'jumping:location_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Nueva Ubicación
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+    }
+    
+    .card-header {
+        border-bottom: none;
+        padding: 1rem;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
+    }
+</style>
+{% endblock %}

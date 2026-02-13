@@ -1,0 +1,544 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reservas - Jumping{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:dashboard' %}" class="text-decoration-none">Jumping</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Reservas</li>
+{% endblock %}
+
+{% block page_title %}
+    <i class="fas fa-calendar-check me-2 text-primary"></i>Gestión de Reservas
+{% endblock %}
+
+{% block page_subtitle %}
+    Visualiza y administra todas las reservas de clases de Jumping
+{% endblock %}
+
+{% block header_actions %}
+    <div class="btn-group">
+        <button type="button" class="btn btn-outline-primary" id="exportExcel">
+            <i class="fas fa-file-excel me-1"></i> Exportar
+        </button>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+            <i class="fas fa-print me-1"></i> Imprimir
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4 fade-in">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="from" class="form-label">Fecha Desde</label>
+                <input type="date" class="form-control" id="from" name="from" value="{{ date_from|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="to" class="form-label">Fecha Hasta</label>
+                <input type="date" class="form-control" id="to" name="to" value="{{ date_to|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Estado</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">Todos</option>
+                    <option value="confirmed" {% if status == 'confirmed' %}selected{% endif %}>Confirmada</option>
+                    <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Cancelada</option>
+                    <option value="attended" {% if status == 'attended' %}selected{% endif %}>Asistió</option>
+                    <option value="no_show" {% if status == 'no_show' %}selected{% endif %}>No asistió</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Estadísticas rápidas -->
+<div class="row mb-4 fade-in">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <i class="fas fa-calendar-check text-primary"></i>
+            <div class="stat-number">{{ bookings.count }}</div>
+            <div class="stat-label">Total Reservas</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <i class="fas fa-check-circle text-success"></i>
+            <div class="stat-number">{{ confirmed_count|default:0 }}</div>
+            <div class="stat-label">Confirmadas</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <i class="fas fa-user-check text-info"></i>
+            <div class="stat-number">{{ attended_count|default:0 }}</div>
+            <div class="stat-label">Asistieron</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <i class="fas fa-times-circle text-danger"></i>
+            <div class="stat-number">{{ cancelled_count|default:0 }}</div>
+            <div class="stat-label">Canceladas</div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de reservas -->
+<div class="card fade-in">
+    <div class="card-body">
+        {% if bookings %}
+        <div class="table-responsive">
+            <table class="table table-hover" id="bookingsTable">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Clase</th>
+                        <th>Fecha y Hora</th>
+                        <th>Ubicación</th>
+                        <th>Estado</th>
+                        <th>Pago</th>
+                        <th>Reservado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr class="{% if booking.status == 'cancelled' %}table-danger{% elif booking.status == 'attended' %}table-success{% endif %}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2" style="width: 32px; height: 32px; background-color: #4CAF50;">
+                                    {{ booking.client.first_name|first|upper }}
+                                </div>
+                                <div>
+                                    <strong>{{ booking.client.first_name }} {{ booking.client.last_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ booking.client.phone }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <strong>{{ booking.jumping_class.name }}</strong>
+                            <br>
+                            <small class="text-muted">Instructor: {{ booking.jumping_class.instructor.full_name }}</small>
+                        </td>
+                        <td>
+                            <i class="far fa-calendar me-1 text-muted"></i>{{ booking.jumping_class.date|date:"d/m/Y" }}
+                            <br>
+                            <i class="far fa-clock me-1 text-muted"></i>{{ booking.jumping_class.start_time|time:"H:i" }}
+                        </td>
+                        <td>
+                            <i class="fas fa-map-marker-alt me-1 text-muted"></i>
+                            {{ booking.jumping_class.location.name }}
+                        </td>
+                        <td>
+                            {% if booking.status == 'confirmed' %}
+                                <span class="badge bg-success">Confirmada</span>
+                            {% elif booking.status == 'attended' %}
+                                <span class="badge bg-info">Asistió</span>
+                            {% elif booking.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% elif booking.status == 'no_show' %}
+                                <span class="badge bg-secondary">No asistió</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if booking.payment_status %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i>Pagado
+                                </span>
+                                <br>
+                                <small>${{ booking.amount_paid }}</small>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ booking.booking_date|date:"d/m/Y H:i" }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'jumping:class_detail' booking.jumping_class.id %}" 
+                                   class="btn btn-outline-primary" 
+                                   title="Ver clase">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if booking.status == 'confirmed' %}
+                                <button type="button" 
+                                        class="btn btn-outline-success" 
+                                        title="Marcar asistencia"
+                                        onclick="markAttendance({{ booking.id }}, '{{ booking.client.first_name }}')">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-outline-danger" 
+                                        title="Cancelar reserva"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#cancelBookingModal"
+                                        data-booking-id="{{ booking.id }}"
+                                        data-client-name="{{ booking.client.first_name }} {{ booking.client.last_name }}"
+                                        data-class-name="{{ booking.jumping_class.name }}"
+                                        data-class-date="{{ booking.jumping_class.date|date:'d/m/Y' }}">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Resumen financiero -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-chart-pie me-2 text-primary"></i>Resumen de Pagos
+                        </h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Total Pagado:</small>
+                                <h5 class="text-success">${{ total_paid|default:0|floatformat:2 }}</h5>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Total Pendiente:</small>
+                                <h5 class="text-warning">${{ total_pending|default:0|floatformat:2 }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-percent me-2 text-primary"></i>Tasa de Asistencia
+                        </h6>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: {% widthratio attended_count bookings.count 100 %}%">
+                                {{ attended_count }} asistieron
+                            </div>
+                            <div class="progress-bar bg-danger" 
+                                 style="width: {% widthratio cancelled_count bookings.count 100 %}%">
+                                {{ cancelled_count }} canceladas
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            {{ attendance_rate|default:0|floatformat:1 }}% de asistencia efectiva
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay reservas en el período seleccionado</h5>
+            <p class="text-muted mb-4">Prueba con otros filtros o crea una nueva reserva</p>
+            <a href="{% url 'jumping:class_list' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Ver Clases Disponibles
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para cancelar reserva -->
+<div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-labelledby="cancelBookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="cancelBookingModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Cancelar Reserva
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body text-center py-4">
+                <div class="mb-4">
+                    <i class="fas fa-calendar-times fa-4x text-danger mb-3"></i>
+                </div>
+                
+                <h5 id="modalClientName" class="mb-2">Cargando...</h5>
+                <p class="text-muted mb-3" id="modalClassInfo">Cargando...</p>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ¿Estás seguro de que deseas cancelar esta reserva?
+                </div>
+                
+                <p class="text-muted mb-4">
+                    <small>
+                        <i class="fas fa-info-circle me-1"></i>
+                        El cupo se liberará automáticamente.
+                    </small>
+                </p>
+                
+                <form id="cancelBookingForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> No, mantener
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i> Sí, cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer bg-light">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta acción no se puede deshacer
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configurar el modal de cancelación
+        const cancelModal = document.getElementById('cancelBookingModal');
+        
+        if (cancelModal) {
+            cancelModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                
+                const bookingId = button.getAttribute('data-booking-id');
+                const clientName = button.getAttribute('data-client-name');
+                const className = button.getAttribute('data-class-name');
+                const classDate = button.getAttribute('data-class-date');
+                
+                document.getElementById('modalClientName').textContent = clientName;
+                document.getElementById('modalClassInfo').textContent = `${className} - ${classDate}`;
+                
+                const form = document.getElementById('cancelBookingForm');
+                form.action = `/jumping/bookings/${bookingId}/cancel/`;
+            });
+        }
+        
+        // Función para marcar asistencia
+        window.markAttendance = function(bookingId, clientName) {
+            if (confirm(`¿Confirmar asistencia de ${clientName}?`)) {
+                fetch(`/jumping/bookings/${bookingId}/attendance/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Error al marcar asistencia');
+                    }
+                });
+            }
+        };
+        
+        // Exportar a Excel
+        document.getElementById('exportExcel')?.addEventListener('click', function() {
+            const table = document.getElementById('bookingsTable');
+            const rows = [];
+            
+            // Encabezados
+            const headers = [];
+            table.querySelectorAll('thead th').forEach(th => {
+                headers.push(th.textContent.trim());
+            });
+            rows.push(headers.join(','));
+            
+            // Datos
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const row = [];
+                tr.querySelectorAll('td').forEach(td => {
+                    row.push('"' + td.textContent.trim().replace(/"/g, '""') + '"');
+                });
+                rows.push(row.join(','));
+            });
+            
+            // Descargar
+            const csv = rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'reservas_jumping.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        // Validación de fechas
+        const fromInput = document.getElementById('from');
+        const toInput = document.getElementById('to');
+        
+        if (fromInput && toInput) {
+            fromInput.addEventListener('change', function() {
+                if (this.value && toInput.value && this.value > toInput.value) {
+                    alert('La fecha desde no puede ser mayor que la fecha hasta');
+                    this.value = '';
+                }
+            });
+            
+            toInput.addEventListener('change', function() {
+                if (this.value && fromInput.value && this.value < fromInput.value) {
+                    alert('La fecha hasta no puede ser menor que la fecha desde');
+                    this.value = '';
+                }
+            });
+        }
+    });
+</script>
+
+<style>
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+    
+    .stat-card i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .stat-number {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: var(--primary-color);
+        line-height: 1.2;
+    }
+    
+    .stat-card .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .table td, .table th {
+        vertical-align: middle;
+    }
+    
+    .progress {
+        border-radius: 10px;
+    }
+    
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
+    
+    /* Modal styles */
+    .modal-content {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .modal-header {
+        border-bottom: none;
+        background: linear-gradient(135deg, #dc3545, #c82333) !important;
+    }
+    
+    .modal-footer {
+        border-top: none;
+    }
+    
+    .btn-close-white {
+        filter: brightness(0) invert(1);
+    }
+    
+    .btn {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        border: none;
+    }
+    
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #c82333, #dc3545);
+    }
+    
+    .modal.fade .modal-dialog {
+        transform: scale(0.8);
+        transition: transform 0.3s ease;
+    }
+    
+    .modal.show .modal-dialog {
+        transform: scale(1);
+    }
+    
+    @media (max-width: 768px) {
+        .modal-dialog {
+            margin: 1rem;
+        }
+        
+        .stat-card {
+            margin-bottom: 1rem;
+        }
+        
+        .btn-group-sm {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+{% endblock %}

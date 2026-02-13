@@ -12,11 +12,26 @@ from notifications.models import SMSNotification
 # users/views.py o donde tengas la home view
 
 
+# users/views.py
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from clients.models import Client
+from jumping.models import JumpingClass, ClassBooking, Instructor, Location
+from notifications.models import SMSNotification
+from django.utils import timezone
+from datetime import timedelta, datetime
+from django.db.models import Count, Sum
+from django.conf import settings
+
 @login_required
 def home(request):
-    """Página principal del dashboard"""
+    """Página principal del dashboard con datos de clientes y jumping"""
+    today = timezone.now().date()
     
-    # Estadísticas
+    # ============================================
+    # DATOS DE CLIENTES
+    # ============================================
+    total_clients_all = Client.objects.count()
     total_clients = Client.objects.filter(is_deleted=False).count()
     overdue_clients = Client.objects.filter(
         is_deleted=False, 
@@ -28,44 +43,125 @@ def home(request):
     ).count()
     deleted_clients = Client.objects.filter(is_deleted=True).count()
     
+    # Porcentajes
+    overdue_percentage = (overdue_clients / total_clients * 100) if total_clients > 0 else 0
+    paid_percentage = (paid_clients / total_clients * 100) if total_clients > 0 else 0
+    
     # Próximos vencimientos (7 días)
-    today = timezone.now().date()
-    next_week = today + timedelta(days=7)
     upcoming_clients = Client.objects.filter(
         is_deleted=False,
-        next_payment_date__range=[today, next_week],
+        next_payment_date__gte=today,
         payment_status='pending'
-    )[:10]
+    ).order_by('next_payment_date')[:5]
     
-    # Actividad reciente (simulada)
-    recent_activities = [
-        {
-            'title': 'Nuevo cliente registrado',
-            'description': 'Juan Pérez se registró en el sistema',
-            'time': 'Hace 2 horas'
-        },
-        {
-            'title': 'Pago recibido',
-            'description': 'María González renovó su membresía',
-            'time': 'Hace 5 horas'
-        },
-        {
-            'title': 'SMS enviado',
-            'description': 'Recordatorio enviado a 15 clientes',
-            'time': 'Ayer'
-        },
-    ]
+    # Agregar días hasta vencimiento
+    for client in upcoming_clients:
+        client.days_until_due = (client.next_payment_date - today).days if client.next_payment_date else 0
     
-    # Estado del sistema
-    twilio_connected = bool(request.settings.TWILIO_ACCOUNT_SID)
+    # ============================================
+    # DATOS DE JUMPING
+    # ============================================
+    # Clases de hoy
+    today_jumping_classes = JumpingClass.objects.filter(
+        date=today,
+        status__in=['scheduled', 'in_progress']
+    ).select_related('instructor', 'location')[:5]
+    
+    jumping_classes_today = today_jumping_classes.count()
+    
+    # Reservas de hoy
+    jumping_bookings_today = ClassBooking.objects.filter(
+        jumping_class__date=today,
+        status='confirmed'
+    ).count()
+    
+    # Ocupación de hoy
+    total_capacity_today = sum(c.capacity for c in today_jumping_classes)
+    total_booked_today = sum(c.current_participants for c in today_jumping_classes)
+    jumping_occupancy_today = (total_booked_today / total_capacity_today * 100) if total_capacity_today > 0 else 0
+    
+    # Instructores y ubicaciones activas
+    active_instructors = Instructor.objects.filter(active=True).count()
+    active_locations = Location.objects.filter(is_active=True).count()
+    
+    # Próximas clases (próximos 7 días)
+    upcoming_jumping_classes = JumpingClass.objects.filter(
+        date__gte=today,
+        date__lte=today + timedelta(days=7),
+        status='scheduled'
+    ).select_related('instructor', 'location').order_by('date', 'start_time')[:5]
+    
+    # ============================================
+    # ACTIVIDAD RECIENTE
+    # ============================================
+    recent_activities = []
+    
+    # Últimos clientes agregados
+    recent_clients = Client.objects.filter(is_deleted=False).order_by('-created_at')[:3]
+    for client in recent_clients:
+        recent_activities.append({
+            'type': 'client',
+            'title': f'Nuevo cliente: {client.first_name} {client.last_name}',
+            'description': f'Tel: {client.phone}',
+            'time': client.created_at.strftime('%H:%M'),
+            'user': 'Sistema'
+        })
+    
+    # Últimas reservas
+    recent_bookings = ClassBooking.objects.select_related('client', 'jumping_class').order_by('-booking_date')[:3]
+    for booking in recent_bookings:
+        recent_activities.append({
+            'type': 'jumping',
+            'title': f'Reserva: {booking.client.first_name} {booking.client.last_name}',
+            'description': f'Clase: {booking.jumping_class.name} - {booking.jumping_class.date.strftime("%d/%m")}',
+            'time': booking.booking_date.strftime('%H:%M'),
+            'user': booking.created_by.username if booking.created_by else 'Sistema'
+        })
+    
+    # Últimos SMS
+    recent_sms = SMSNotification.objects.select_related('client').order_by('-created_at')[:3]
+    for sms in recent_sms:
+        recent_activities.append({
+            'type': 'sms',
+            'title': f'SMS enviado a {sms.client.first_name} {sms.client.last_name}',
+            'description': sms.message[:50] + '...',
+            'time': sms.created_at.strftime('%H:%M'),
+            'user': 'Sistema'
+        })
+    
+    # Ordenar por tiempo (más reciente primero)
+    recent_activities.sort(key=lambda x: x['time'], reverse=True)
+    recent_activities = recent_activities[:5]  # Solo los 5 más recientes
+    
+    # ============================================
+    # ESTADO DEL SISTEMA
+    # ============================================
+    twilio_connected = bool(settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN)
     
     context = {
+        # Clientes
         'total_clients': total_clients,
+        'total_clients_all': total_clients_all,
         'overdue_clients': overdue_clients,
         'paid_clients': paid_clients,
         'deleted_clients': deleted_clients,
+        'overdue_percentage': round(overdue_percentage, 1),
+        'paid_percentage': round(paid_percentage, 1),
         'upcoming_clients': upcoming_clients,
+        
+        # Jumping
+        'today_jumping_classes': today_jumping_classes,
+        'jumping_classes_today': jumping_classes_today,
+        'jumping_bookings_today': jumping_bookings_today,
+        'jumping_occupancy_today': round(jumping_occupancy_today, 1),
+        'active_instructors': active_instructors,
+        'active_locations': active_locations,
+        'upcoming_jumping_classes': upcoming_jumping_classes,
+        
+        # Actividad
         'recent_activities': recent_activities,
+        
+        # Sistema
         'twilio_connected': twilio_connected,
     }
     

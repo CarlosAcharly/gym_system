@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+
+{% block title %}Clases de Jumping - Gym System{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:dashboard' %}" class="text-decoration-none">Jumping</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Clases</li>
+{% endblock %}
+
+{% block page_title %}
+    <i class="fas fa-list me-2 text-primary"></i>Lista de Clases de Jumping
+{% endblock %}
+
+{% block page_subtitle %}
+    Gestiona todas las clases programadas
+{% endblock %}
+
+{% block header_actions %}
+    <div class="btn-group">
+        <a href="{% url 'jumping:class_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> Nueva Clase
+        </a>
+        <a href="{% url 'jumping:weekly_schedule' %}" class="btn btn-outline-primary">
+            <i class="fas fa-calendar-alt me-1"></i> Horario Semanal
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4 fade-in">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="date" class="form-label">Fecha</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{ filters.date }}">
+            </div>
+            <div class="col-md-3">
+                <label for="location" class="form-label">Ubicación</label>
+                <select class="form-select" id="location" name="location">
+                    <option value="">Todas</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.id }}" {% if filters.location == loc.id|stringformat:"s" %}selected{% endif %}>
+                        {{ loc.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="instructor" class="form-label">Instructor</label>
+                <select class="form-select" id="instructor" name="instructor">
+                    <option value="">Todos</option>
+                    {% for inst in instructors %}
+                    <option value="{{ inst.id }}" {% if filters.instructor == inst.id|stringformat:"s" %}selected{% endif %}>
+                        {{ inst.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Estado</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">Todos</option>
+                    <option value="scheduled" {% if filters.status == 'scheduled' %}selected{% endif %}>Programada</option>
+                    <option value="in_progress" {% if filters.status == 'in_progress' %}selected{% endif %}>En curso</option>
+                    <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Completada</option>
+                    <option value="cancelled" {% if filters.status == 'cancelled' %}selected{% endif %}>Cancelada</option>
+                    <option value="full" {% if filters.status == 'full' %}selected{% endif %}>Completa</option>
+                </select>
+            </div>
+            <div class="col-12 text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+                <a href="{% url 'jumping:class_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i> Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Clases -->
+<div class="card fade-in">
+    <div class="card-body">
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Clase</th>
+                        <th>Fecha y Hora</th>
+                        <th>Instructor</th>
+                        <th>Ubicación</th>
+                        <th>Capacidad</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for class in page_obj %}
+                    <tr class="{% if class.status == 'cancelled' %}table-danger{% elif class.status == 'completed' %}table-secondary{% endif %}">
+                        <td>
+                            <strong>{{ class.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ class.difficulty|title }}</small>
+                        </td>
+                        <td>
+                            <i class="far fa-calendar me-1"></i>{{ class.date|date:"d/m/Y" }}
+                            <br>
+                            <i class="far fa-clock me-1"></i>{{ class.start_time|time:"H:i" }} - {{ class.end_time|time:"H:i" }}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2" style="width: 32px; height: 32px; background-color: #4CAF50;">
+                                    {{ class.instructor.first_name|first|upper }}
+                                </div>
+                                {{ class.instructor.full_name }}
+                            </div>
+                        </td>
+                        <td>
+                            <i class="fas fa-map-marker-alt me-1 text-muted"></i>
+                            {{ class.location.name }}
+                        </td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-{% if class.available_spots > 5 %}success{% elif class.available_spots > 0 %}warning{% else %}danger{% endif %}" 
+                                     style="width: {% widthratio class.current_participants class.capacity 100 %}%">
+                                    {{ class.current_participants }}/{{ class.capacity }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if class.status == 'scheduled' %}
+                                <span class="badge bg-primary">Programada</span>
+                            {% elif class.status == 'in_progress' %}
+                                <span class="badge bg-success">En curso</span>
+                            {% elif class.status == 'completed' %}
+                                <span class="badge bg-secondary">Completada</span>
+                            {% elif class.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% elif class.status == 'full' %}
+                                <span class="badge bg-warning text-dark">Completa</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'jumping:class_detail' class.id %}" class="btn btn-outline-primary" title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'jumping:class_edit' class.id %}" class="btn btn-outline-info" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if class.can_cancel %}
+                                <a href="{% url 'jumping:class_cancel' class.id %}" class="btn btn-outline-warning" title="Cancelar">
+                                    <i class="fas fa-times-circle"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'jumping:create_booking' class.id %}" class="btn btn-outline-success" title="Crear reserva">
+                                    <i class="fas fa-calendar-plus"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        {% if page_obj.paginator.num_pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% for key, value in filters.items %}&{{ key }}={{ value }}{% endfor %}">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in filters.items %}&{{ key }}={{ value }}{% endfor %}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% for key, value in filters.items %}&{{ key }}={{ value }}{% endfor %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in filters.items %}&{{ key }}={{ value }}{% endfor %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in filters.items %}&{{ key }}={{ value }}{% endfor %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay clases programadas</h5>
+            <p class="text-muted mb-4">Comienza creando una nueva clase</p>
+            <a href="{% url 'jumping:class_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Nueva Clase
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .progress {
+        border-radius: 10px;
+    }
+    
+    .table td, .table th {
+        vertical-align: middle;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

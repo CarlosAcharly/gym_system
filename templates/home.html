@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Dashboard - Gym System{% endblock %}
 
@@ -10,7 +11,7 @@
                 <i class="fas fa-tachometer-alt me-2"></i>Dashboard
             </h1>
             <p class="text-muted">
-                Bienvenido al sistema de gestión del gimnasio
+                Bienvenido al sistema de gestión del gimnasio, <strong>{{ user.first_name|default:user.username }}</strong>
             </p>
         </div>
         <div class="col-auto">
@@ -22,6 +23,9 @@
                     <li><a class="dropdown-item" href="{% url 'client_create' %}">
                         <i class="fas fa-user-plus me-2"></i> Nuevo Cliente
                     </a></li>
+                    <li><a class="dropdown-item" href="{% url 'jumping:class_create' %}">
+                        <i class="fas fa-trampoline me-2"></i> Nueva Clase Jumping
+                    </a></li>
                     <li><a class="dropdown-item" href="{% url 'bulk_sms' %}">
                         <i class="fas fa-sms me-2"></i> SMS Masivo
                     </a></li>
@@ -29,6 +33,13 @@
                         <i class="fas fa-clock me-2"></i> Verificar Pagos
                     </a></li>
                     {% if user.role == 'admin' %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'jumping:instructor_list' %}">
+                        <i class="fas fa-chalkboard-teacher me-2"></i> Instructores
+                    </a></li>
+                    <li><a class="dropdown-item" href="{% url 'jumping:location_list' %}">
+                        <i class="fas fa-map-marker-alt me-2"></i> Ubicaciones
+                    </a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="/admin/">
                         <i class="fas fa-cogs me-2"></i> Panel Admin
@@ -43,13 +54,14 @@
 {% endblock %}
 
 {% block content %}
+<!-- Stats Cards Principales -->
 <div class="row mb-4 fade-in">
-    <!-- Stats Cards -->
     <div class="col-md-3 mb-3">
         <div class="stat-card">
             <i class="fas fa-users text-primary"></i>
             <div class="stat-number">{{ total_clients }}</div>
             <div class="stat-label">Clientes Activos</div>
+            <small class="text-muted">Total: {{ total_clients_all }}</small>
         </div>
     </div>
     <div class="col-md-3 mb-3">
@@ -57,6 +69,7 @@
             <i class="fas fa-exclamation-triangle text-warning"></i>
             <div class="stat-number">{{ overdue_clients }}</div>
             <div class="stat-label">Pagos Vencidos</div>
+            <small class="text-muted">{{ overdue_percentage }}% del total</small>
         </div>
     </div>
     <div class="col-md-3 mb-3">
@@ -64,6 +77,7 @@
             <i class="fas fa-check-circle text-success"></i>
             <div class="stat-number">{{ paid_clients }}</div>
             <div class="stat-label">Pagos al Día</div>
+            <small class="text-muted">{{ paid_percentage }}% del total</small>
         </div>
     </div>
     <div class="col-md-3 mb-3">
@@ -71,6 +85,43 @@
             <i class="fas fa-trash text-danger"></i>
             <div class="stat-number">{{ deleted_clients }}</div>
             <div class="stat-label">En Papelera</div>
+            <small class="text-muted">Eliminados</small>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards Jumping -->
+<div class="row mb-4 fade-in">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="border-left: 4px solid #FF416C;">
+            <i class="fas fa-trampoline text-danger"></i>
+            <div class="stat-number">{{ jumping_classes_today }}</div>
+            <div class="stat-label">Clases Hoy</div>
+            <small class="text-muted">Jumping</small>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="border-left: 4px solid #28a745;">
+            <i class="fas fa-calendar-check text-success"></i>
+            <div class="stat-number">{{ jumping_bookings_today }}</div>
+            <div class="stat-label">Reservas Hoy</div>
+            <small class="text-muted">{{ jumping_occupancy_today }}% ocupación</small>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="border-left: 4px solid #17a2b8;">
+            <i class="fas fa-chalkboard-teacher text-info"></i>
+            <div class="stat-number">{{ active_instructors }}</div>
+            <div class="stat-label">Instructores</div>
+            <small class="text-muted">Activos</small>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="border-left: 4px solid #ffc107;">
+            <i class="fas fa-map-marker-alt text-warning"></i>
+            <div class="stat-number">{{ active_locations }}</div>
+            <div class="stat-label">Ubicaciones</div>
+            <small class="text-muted">Sedes activas</small>
         </div>
     </div>
 </div>
@@ -78,23 +129,99 @@
 <div class="row fade-in">
     <!-- Left Column -->
     <div class="col-lg-8">
+        <!-- Clases de Jumping Hoy -->
+        <div class="card mb-4 border-danger">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-trampoline me-2"></i>Clases de Jumping Hoy
+                </h5>
+                <a href="{% url 'jumping:weekly_schedule' %}" class="btn btn-sm btn-light">
+                    Ver Horario <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if jumping_classes_today > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Clase</th>
+                                <th>Horario</th>
+                                <th>Instructor</th>
+                                <th>Ubicación</th>
+                                <th>Disponibilidad</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in today_jumping_classes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ class.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ class.get_difficulty_display }}</small>
+                                </td>
+                                <td>{{ class.start_time|time:"H:i" }} - {{ class.end_time|time:"H:i" }}</td>
+                                <td>{{ class.instructor.full_name }}</td>
+                                <td>{{ class.location.name }}</td>
+                                <td>
+                                    <span class="badge bg-{% if class.available_spots > 5 %}success{% elif class.available_spots > 0 %}warning{% else %}danger{% endif %}">
+                                        {{ class.available_spots }}/{{ class.capacity }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'jumping:class_detail' class.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No hay clases de Jumping programadas para hoy</p>
+                    <a href="{% url 'jumping:class_create' %}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-plus me-1"></i> Programar Clase
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Recent Activity -->
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
                 <h5 class="mb-0">
                     <i class="fas fa-history me-2"></i>Actividad Reciente
                 </h5>
-                <a href="#" class="btn btn-sm btn-outline-primary">Ver Todo</a>
+                <span class="badge bg-light text-primary">{{ recent_activities|length }} eventos</span>
             </div>
             <div class="card-body">
                 <div class="list-group list-group-flush">
                     {% for activity in recent_activities %}
                     <div class="list-group-item">
                         <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ activity.title }}</h6>
+                            <h6 class="mb-1">
+                                {% if activity.type == 'client' %}
+                                    <i class="fas fa-user text-primary me-2"></i>
+                                {% elif activity.type == 'payment' %}
+                                    <i class="fas fa-dollar-sign text-success me-2"></i>
+                                {% elif activity.type == 'jumping' %}
+                                    <i class="fas fa-trampoline text-danger me-2"></i>
+                                {% elif activity.type == 'sms' %}
+                                    <i class="fas fa-sms text-info me-2"></i>
+                                {% endif %}
+                                {{ activity.title }}
+                            </h6>
                             <small class="text-muted">{{ activity.time }}</small>
                         </div>
                         <p class="mb-1">{{ activity.description }}</p>
+                        <small class="text-muted">
+                            <i class="fas fa-user-circle me-1"></i>{{ activity.user|default:"Sistema" }}
+                        </small>
                     </div>
                     {% empty %}
                     <div class="text-center py-4">
@@ -108,10 +235,11 @@
         
         <!-- Upcoming Payments -->
         <div class="card">
-            <div class="card-header">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-calendar-alt me-2"></i>Próximos Vencimientos
                 </h5>
+                <span class="badge bg-dark text-white">{{ upcoming_clients|length }} clientes</span>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -129,33 +257,40 @@
                             {% for client in upcoming_clients %}
                             <tr>
                                 <td>
-                                    <strong>{{ client.first_name }} {{ client.last_name }}</strong>
-                                    <br>
-                                    <small class="text-muted">{{ client.email|default:"Sin email" }}</small>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-2" style="width: 32px; height: 32px; background-color: #4CAF50;">
+                                            {{ client.first_name|first|upper }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ client.first_name }} {{ client.last_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ client.email|default:"Sin email"|truncatechars:20 }}</small>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>{{ client.phone }}</td>
                                 <td>
                                     {{ client.next_payment_date|date:"d/m/Y" }}
                                     <br>
-                                    <small class="text-muted">
-                                        {{ client.next_payment_date|timeuntil }}
+                                    <small class="text-{% if client.days_until_due < 3 %}danger{% else %}warning{% endif %}">
+                                        {{ client.days_until_due }} días
                                     </small>
                                 </td>
                                 <td>
                                     {% if client.payment_status == 'paid' %}
-                                    <span class="badge badge-paid">Pagado</span>
+                                    <span class="badge bg-success">Pagado</span>
                                     {% elif client.payment_status == 'pending' %}
-                                    <span class="badge badge-pending">Pendiente</span>
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
                                     {% else %}
-                                    <span class="badge badge-overdue">Vencido</span>
+                                    <span class="badge bg-danger">Vencido</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'renew_membership' client.id %}" class="btn btn-outline-success">
+                                        <a href="{% url 'renew_membership' client.id %}" class="btn btn-outline-success" title="Renovar">
                                             <i class="fas fa-sync-alt"></i>
                                         </a>
-                                        <a href="{% url 'send_client_sms' client.id %}" class="btn btn-outline-primary">
+                                        <a href="{% url 'send_client_sms' client.id %}" class="btn btn-outline-primary" title="Enviar SMS">
                                             <i class="fas fa-sms"></i>
                                         </a>
                                     </div>
@@ -179,8 +314,8 @@
     <!-- Right Column -->
     <div class="col-lg-4">
         <!-- Quick Actions -->
-        <div class="card mb-4">
-            <div class="card-header">
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
                     <i class="fas fa-bolt me-2"></i>Acciones Rápidas
                 </h5>
@@ -190,24 +325,76 @@
                     <a href="{% url 'client_create' %}" class="btn btn-gradient">
                         <i class="fas fa-user-plus me-2"></i> Nuevo Cliente
                     </a>
+                    <a href="{% url 'jumping:class_create' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-trampoline me-2"></i> Nueva Clase Jumping
+                    </a>
                     <a href="{% url 'bulk_sms' %}" class="btn btn-outline-primary">
                         <i class="fas fa-sms me-2"></i> SMS Masivo
                     </a>
                     <a href="{% url 'client_list' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-list me-2"></i> Lista Completa
+                        <i class="fas fa-list me-2"></i> Lista de Clientes
+                    </a>
+                    <a href="{% url 'jumping:weekly_schedule' %}" class="btn btn-outline-info">
+                        <i class="fas fa-calendar-alt me-2"></i> Horario Jumping
                     </a>
                     {% if user.role == 'admin' %}
+                    <div class="dropdown-divider"></div>
                     <a href="{% url 'client_trash' %}" class="btn btn-outline-danger">
                         <i class="fas fa-trash me-2"></i> Papelera
+                        <span class="badge bg-danger ms-2">{{ deleted_clients }}</span>
                     </a>
                     {% endif %}
                 </div>
             </div>
         </div>
         
+        <!-- Próximas Clases Jumping -->
+        <div class="card mb-4 border-info">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-week me-2"></i>Próximas Clases Jumping
+                </h5>
+                <a href="{% url 'jumping:class_list' %}" class="btn btn-sm btn-light">
+                    Ver todas
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for class in upcoming_jumping_classes %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ class.name }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>{{ class.date|date:"d/m/Y" }}
+                                    <i class="fas fa-clock ms-2 me-1"></i>{{ class.start_time|time:"H:i" }}
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-chalkboard-teacher me-1"></i>{{ class.instructor.full_name }}
+                                </small>
+                            </div>
+                            <div>
+                                <span class="badge bg-{% if class.available_spots > 5 %}success{% elif class.available_spots > 0 %}warning{% else %}danger{% endif %}">
+                                    {{ class.available_spots }} lugares
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                        <p class="text-muted small">No hay próximas clases</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
         <!-- System Status -->
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header bg-secondary text-white">
                 <h5 class="mb-0">
                     <i class="fas fa-server me-2"></i>Estado del Sistema
                 </h5>
@@ -215,7 +402,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <div class="d-flex justify-content-between mb-1">
-                        <span>Base de datos</span>
+                        <span><i class="fas fa-database me-2"></i>Base de datos</span>
                         <span class="text-success">
                             <i class="fas fa-check-circle me-1"></i>Conectado
                         </span>
@@ -227,7 +414,7 @@
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between mb-1">
-                        <span>SMS Service</span>
+                        <span><i class="fas fa-sms me-2"></i>SMS Service</span>
                         {% if twilio_connected %}
                         <span class="text-success">
                             <i class="fas fa-check-circle me-1"></i>Activo
@@ -247,7 +434,7 @@
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between mb-1">
-                        <span>Tareas Automáticas</span>
+                        <span><i class="fas fa-clock me-2"></i>Tareas Automáticas</span>
                         <span class="text-warning">
                             <i class="fas fa-sync-alt me-1"></i>Activas
                         </span>
@@ -256,20 +443,32 @@
                         <div class="progress-bar bg-warning" style="width: 85%"></div>
                     </div>
                 </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="fas fa-trampoline me-2"></i>Módulo Jumping</span>
+                        <span class="text-success">
+                            <i class="fas fa-check-circle me-1"></i>Activo
+                        </span>
+                    </div>
+                    <div class="progress" style="height: 5px;">
+                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                    </div>
+                </div>
             </div>
         </div>
         
         <!-- User Info -->
-        <div class="card">
-            <div class="card-header">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
                     <i class="fas fa-user me-2"></i>Tu Información
                 </h5>
             </div>
             <div class="card-body">
                 <div class="text-center mb-3">
-                    <div class="avatar-circle mx-auto mb-3" style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; font-size: 2rem; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                        {{ user.username|first|upper }}
+                    <div class="avatar-circle mx-auto mb-3" style="width: 80px; height: 80px; background: linear-gradient(135deg, #FF416C, #FF4B2B); color: white; font-size: 2rem; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
                     </div>
                     <h5>{{ user.get_full_name|default:user.username }}</h5>
                     <p class="text-muted">
@@ -282,20 +481,138 @@
                 </div>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item d-flex justify-content-between">
-                        <span>Último acceso:</span>
+                        <span><i class="fas fa-clock me-2 text-muted"></i>Último acceso:</span>
                         <strong>{{ user.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</strong>
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
-                        <span>Fecha registro:</span>
+                        <span><i class="fas fa-calendar me-2 text-muted"></i>Fecha registro:</span>
                         <strong>{{ user.date_joined|date:"d/m/Y" }}</strong>
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
-                        <span>Email:</span>
+                        <span><i class="fas fa-envelope me-2 text-muted"></i>Email:</span>
                         <strong>{{ user.email|default:"No especificado" }}</strong>
                     </li>
                 </ul>
             </div>
+            <div class="card-footer bg-light text-center">
+                <small class="text-muted">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Acceso: {{ user.get_role_display }}
+                </small>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Actualizar cada 5 minutos
+        setTimeout(function() {
+            location.reload();
+        }, 300000);
+    });
+</script>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+    
+    .stat-card i {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+        line-height: 1.2;
+    }
+    
+    .stat-card .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .btn-gradient {
+        background: linear-gradient(135deg, #FF416C, #FF4B2B);
+        color: white;
+        border: none;
+    }
+    
+    .btn-gradient:hover {
+        background: linear-gradient(135deg, #FF4B2B, #FF416C);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 65, 108, 0.3);
+    }
+    
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Colores para badges */
+    .badge-paid {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .badge-overdue {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .stat-card {
+            margin-bottom: 1rem;
+        }
+        
+        .btn-group {
+            width: 100%;
+        }
+        
+        .dropdown-menu {
+            width: 100%;
+        }
+    }
+</style>
 {% endblock %}

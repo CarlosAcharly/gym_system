@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Cancelar Clase{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card border-warning">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0">Confirmar Cancelación</h5>
+        </div>
+        <div class="card-body">
+            <p>¿Estás seguro de que deseas cancelar la clase <strong>{{ class.name }}</strong>?</p>
+            <p class="text-warning">Se notificará a todos los clientes con reservas.</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning">Sí, cancelar clase</button>
+                <a href="{% url 'jumping:class_detail' class.id %}" class="btn btn-secondary">Volver</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

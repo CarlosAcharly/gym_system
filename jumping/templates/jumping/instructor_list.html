@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Instructores de Jumping - Gym System{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:dashboard' %}" class="text-decoration-none">Jumping</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Instructores</li>
+{% endblock %}
+
+{% block page_title %}
+    <i class="fas fa-chalkboard-teacher me-2 text-primary"></i>Instructores de Jumping
+{% endblock %}
+
+{% block page_subtitle %}
+    Gestiona los instructores y profesores de las clases
+{% endblock %}
+
+{% block header_actions %}
+    <div class="btn-group">
+        <a href="{% url 'jumping:instructor_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> Nuevo Instructor
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="row fade-in">
+    {% if instructors %}
+    {% for instructor in instructors %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm hover-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-circle me-3" style="width: 60px; height: 60px; background: linear-gradient(135deg, #FF416C, #FF4B2B); font-size: 24px;">
+                        {{ instructor.first_name|first|upper }}{{ instructor.last_name|first|upper }}
+                    </div>
+                    <div>
+                        <h5 class="mb-1">{{ instructor.full_name }}</h5>
+                        <p class="text-muted mb-0">{{ instructor.specialization|default:"Instructor de Jumping" }}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <p class="mb-1">
+                        <i class="fas fa-phone me-2 text-muted"></i>{{ instructor.phone }}
+                    </p>
+                    <p class="mb-1">
+                        <i class="fas fa-envelope me-2 text-muted"></i>{{ instructor.email|default:"No especificado" }}
+                    </p>
+                    <p class="mb-1">
+                        <i class="fas fa-calendar-alt me-2 text-muted"></i>Contratación: {{ instructor.hire_date|date:"d/m/Y" }}
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge bg-{% if instructor.active %}success{% else %}danger{% endif %}">
+                        {% if instructor.active %}Activo{% else %}Inactivo{% endif %}
+                    </span>
+                    <span class="badge bg-info ms-2">
+                        <i class="fas fa-trampoline me-1"></i>{{ instructor.total_classes }} clases
+                    </span>
+                    {% if instructor.upcoming_classes > 0 %}
+                    <span class="badge bg-warning text-dark ms-2">
+                        <i class="fas fa-clock me-1"></i>{{ instructor.upcoming_classes }} próximas
+                    </span>
+                    {% endif %}
+                </div>
+                
+                {% if instructor.bio %}
+                <p class="card-text small text-muted">{{ instructor.bio|truncatechars:100 }}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-top-0">
+                <div class="btn-group w-100">
+                    <a href="{% url 'jumping:instructor_edit' instructor.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-edit me-1"></i> Editar
+                    </a>
+                    <a href="{% url 'jumping:instructor_delete' instructor.id %}" class="btn btn-outline-danger">
+                        <i class="fas fa-trash me-1"></i> Eliminar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay instructores registrados</h5>
+            <p class="text-muted mb-4">Comienza agregando un nuevo instructor</p>
+            <a href="{% url 'jumping:instructor_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Nuevo Instructor
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+    }
+    
+    .avatar-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 20px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,612 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Editar{% else %}Nueva{% endif %} Clase - Jumping{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:dashboard' %}" class="text-decoration-none">Jumping</a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:class_list' %}" class="text-decoration-none">Clases</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">
+        {% if is_edit %}Editar{% else %}Nueva{% endif %} Clase
+    </li>
+{% endblock %}
+
+{% block page_title %}
+    <i class="fas {% if is_edit %}fa-edit{% else %}fa-plus-circle{% endif %} me-2 text-primary"></i>
+    {% if is_edit %}Editar Clase{% else %}Nueva Clase de Jumping{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+    {% if is_edit %}
+        Modifica los detalles de la clase existente
+    {% else %}
+        Programa una nueva clase de Jumping
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-lg-8">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-gradient-primary text-white py-3" style="background: linear-gradient(135deg, #FF416C, #FF4B2B);">
+                <h5 class="mb-0">
+                    <i class="fas fa-trampoline me-2"></i>
+                    Información de la Clase
+                </h5>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Nombre de la clase -->
+                    <div class="mb-4">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-tag me-2 text-primary"></i>Nombre de la Clase <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small mt-1">
+                                <i class="fas fa-exclamation-circle me-1"></i>{{ form.name.errors.0 }}
+                            </div>
+                        {% else %}
+                            <div class="form-text text-muted">Ej: Jumping Cardio, Jumping Fitness, etc.</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Descripción -->
+                    <div class="mb-4">
+                        <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-align-left me-2 text-primary"></i>Descripción
+                        </label>
+                        {{ form.description }}
+                        <div class="form-text text-muted">Describe brevemente la clase (opcional)</div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Instructor -->
+                        <div class="col-md-6 mb-4">
+                            <label for="{{ form.instructor.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-chalkboard-teacher me-2 text-primary"></i>Instructor <span class="text-danger">*</span>
+                            </label>
+                            {{ form.instructor }}
+                            {% if form.instructor.errors %}
+                                <div class="text-danger small mt-1">{{ form.instructor.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Ubicación -->
+                        <div class="col-md-6 mb-4">
+                            <label for="{{ form.location.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-map-marker-alt me-2 text-primary"></i>Ubicación <span class="text-danger">*</span>
+                            </label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <div class="text-danger small mt-1">{{ form.location.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Fecha -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.date.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt me-2 text-primary"></i>Fecha <span class="text-danger">*</span>
+                            </label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                                <div class="text-danger small mt-1">{{ form.date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Hora inicio -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.start_time.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-clock me-2 text-primary"></i>Hora Inicio <span class="text-danger">*</span>
+                            </label>
+                            {{ form.start_time }}
+                            {% if form.start_time.errors %}
+                                <div class="text-danger small mt-1">{{ form.start_time.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Hora fin -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.end_time.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-clock me-2 text-primary"></i>Hora Fin <span class="text-danger">*</span>
+                            </label>
+                            {{ form.end_time }}
+                            {% if form.end_time.errors %}
+                                <div class="text-danger small mt-1">{{ form.end_time.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Duración -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.duration.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-hourglass-half me-2 text-primary"></i>Duración (minutos)
+                            </label>
+                            {{ form.duration }}
+                            <div class="form-text text-muted">Auto-calculado</div>
+                        </div>
+                        
+                        <!-- Capacidad -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.capacity.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-users me-2 text-primary"></i>Capacidad <span class="text-danger">*</span>
+                            </label>
+                            {{ form.capacity }}
+                            {% if form.capacity.errors %}
+                                <div class="text-danger small mt-1">{{ form.capacity.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Dificultad -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.difficulty.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-chart-line me-2 text-primary"></i>Dificultad
+                            </label>
+                            {{ form.difficulty }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Precio -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.price.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-dollar-sign me-2 text-primary"></i>Precio
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.price }}
+                            </div>
+                        </div>
+                        
+                        <!-- Equipos disponibles -->
+                        <div class="col-md-4 mb-4">
+                            <label for="{{ form.equipment_available.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-tools me-2 text-primary"></i>Equipos disponibles
+                            </label>
+                            {{ form.equipment_available }}
+                            <div class="form-text text-muted">Número de camas elásticas</div>
+                        </div>
+                        
+                        <!-- Requiere equipo -->
+                        <div class="col-md-4 mb-4">
+                            <label class="form-label fw-bold d-block">
+                                <i class="fas fa-check-circle me-2 text-primary"></i>Requiere equipo
+                            </label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.requires_equipment }}
+                                <label class="form-check-label" for="{{ form.requires_equipment.id_for_label }}">
+                                    Los clientes necesitan traer equipo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Clase recurrente - VERSIÓN MEJORADA -->
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-3">
+                                {{ form.recurring }}
+                                <label class="form-check-label fw-bold" for="{{ form.recurring.id_for_label }}">
+                                    <i class="fas fa-sync-alt me-2 text-primary"></i>Clase recurrente
+                                </label>
+                            </div>
+                            
+                            <div id="recurringFields" style="display: none;">
+                                <div class="row">
+                                    <!-- Selector de días - MEJORADO -->
+                                    <div class="col-md-7 mb-3">
+                                        <label class="form-label fw-bold">
+                                            <i class="fas fa-calendar-week me-2 text-primary"></i>Días de repetición
+                                        </label>
+                                        <div class="days-selector">
+                                            <div class="btn-group w-100" role="group" aria-label="Días de la semana">
+                                                <input type="checkbox" class="btn-check" id="day-mon" name="recurring_days" value="0" autocomplete="off">
+                                                <label class="btn btn-outline-primary day-btn" for="day-mon" title="Lunes">L</label>
+                                                
+                                                <input type="checkbox" class="btn-check" id="day-tue" name="recurring_days" value="1" autocomplete="off">
+                                                <label class="btn btn-outline-primary day-btn" for="day-tue" title="Martes">M</label>
+                                                
+                                                <input type="checkbox" class="btn-check" id="day-wed" name="recurring_days" value="2" autocomplete="off">
+                                                <label class="btn btn-outline-primary day-btn" for="day-wed" title="Miércoles">M</label>
+                                                
+                                                <input type="checkbox" class="btn-check" id="day-thu" name="recurring_days" value="3" autocomplete="off">
+                                                <label class="btn btn-outline-primary day-btn" for="day-thu" title="Jueves">J</label>
+                                                
+                                                <input type="checkbox" class="btn-check" id="day-fri" name="recurring_days" value="4" autocomplete="off">
+                                                <label class="btn btn-outline-primary day-btn" for="day-fri" title="Viernes">V</label>
+                                                
+                                                <input type="checkbox" class="btn-check" id="day-sat" name="recurring_days" value="5" autocomplete="off">
+                                                <label class="btn btn-outline-primary day-btn" for="day-sat" title="Sábado">S</label>
+                                                
+                                                <input type="checkbox" class="btn-check" id="day-sun" name="recurring_days" value="6" autocomplete="off">
+                                                <label class="btn btn-outline-primary day-btn" for="day-sun" title="Domingo">D</label>
+                                            </div>
+                                        </div>
+                                        <div class="form-text text-muted mt-2">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Selecciona los días en que se repetirá la clase
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Fecha hasta -->
+                                    <div class="col-md-5 mb-3">
+                                        <label for="{{ form.recurring_until.id_for_label }}" class="form-label fw-bold">
+                                            <i class="fas fa-calendar-check me-2 text-primary"></i>Repetir hasta
+                                        </label>
+                                        {{ form.recurring_until }}
+                                        <div class="form-text text-muted">Fecha límite de repetición</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Vista previa de recurrencia -->
+                                <div class="recurrence-preview alert alert-info mt-3" id="recurrencePreview" style="display: none;">
+                                    <i class="fas fa-eye me-2"></i>
+                                    <strong>Vista previa:</strong>
+                                    <span id="previewText">Clase se repetirá los días seleccionados hasta la fecha indicada</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{% url 'jumping:class_list' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg px-5" style="background: linear-gradient(135deg, #FF416C, #FF4B2B); border: none;">
+                            <i class="fas fa-save me-2"></i>
+                            {% if is_edit %}Actualizar Clase{% else %}Guardar Clase{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Información adicional -->
+            <div class="card-footer bg-light">
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Campos marcados con <span class="text-danger">*</span> son obligatorios
+                        </small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            La clase se creará en la zona horaria local
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mostrar/ocultar campos de clase recurrente
+        const recurringCheckbox = document.getElementById('{{ form.recurring.id_for_label }}');
+        const recurringFields = document.getElementById('recurringFields');
+        
+        if (recurringCheckbox) {
+            recurringCheckbox.addEventListener('change', function() {
+                recurringFields.style.display = this.checked ? 'block' : 'none';
+                if (this.checked) {
+                    updateRecurrencePreview();
+                }
+            });
+            
+            // Estado inicial
+            recurringFields.style.display = recurringCheckbox.checked ? 'block' : 'none';
+        }
+        
+        // Calcular duración automáticamente
+        const startTime = document.getElementById('{{ form.start_time.id_for_label }}');
+        const endTime = document.getElementById('{{ form.end_time.id_for_label }}');
+        const durationField = document.getElementById('{{ form.duration.id_for_label }}');
+        
+        function calculateDuration() {
+            if (startTime.value && endTime.value) {
+                const start = startTime.value.split(':');
+                const end = endTime.value.split(':');
+                
+                const startMinutes = parseInt(start[0]) * 60 + parseInt(start[1]);
+                const endMinutes = parseInt(end[0]) * 60 + parseInt(end[1]);
+                
+                let duration = endMinutes - startMinutes;
+                if (duration < 0) {
+                    duration += 24 * 60; // Cruce de medianoche
+                }
+                
+                durationField.value = duration;
+            }
+        }
+        
+        if (startTime && endTime) {
+            startTime.addEventListener('change', calculateDuration);
+            endTime.addEventListener('change', calculateDuration);
+        }
+        
+        // Función para actualizar vista previa de recurrencia
+        function updateRecurrencePreview() {
+            const dayCheckboxes = document.querySelectorAll('input[name="recurring_days"]:checked');
+            const untilDate = document.getElementById('{{ form.recurring_until.id_for_label }}');
+            const previewDiv = document.getElementById('recurrencePreview');
+            const previewText = document.getElementById('previewText');
+            
+            if (dayCheckboxes.length > 0 && untilDate.value) {
+                const dayNames = [];
+                const dayMap = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                
+                dayCheckboxes.forEach(checkbox => {
+                    dayNames.push(dayMap[parseInt(checkbox.value)]);
+                });
+                
+                const daysString = dayNames.join(', ');
+                const untilDateStr = new Date(untilDate.value).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                previewText.textContent = `Clase se repetirá los días: ${daysString} hasta el ${untilDateStr}`;
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+        
+        // Event listeners para los checkboxes de días
+        const dayCheckboxes = document.querySelectorAll('input[name="recurring_days"]');
+        dayCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateRecurrencePreview);
+        });
+        
+        // Event listener para fecha hasta
+        const untilDate = document.getElementById('{{ form.recurring_until.id_for_label }}');
+        if (untilDate) {
+            untilDate.addEventListener('change', updateRecurrencePreview);
+        }
+        
+        // Cargar días guardados si estamos editando
+        {% if is_edit and form.instance.recurring_days %}
+        const savedDays = {{ form.instance.recurring_days|safe }};
+        savedDays.forEach(dayValue => {
+            const checkbox = document.querySelector(`input[name="recurring_days"][value="${dayValue}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        updateRecurrencePreview();
+        {% endif %}
+        
+        // Validación de formulario
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    });
+</script>
+
+<style>
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .card-header {
+        border-bottom: none;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #FF416C;
+        box-shadow: 0 0 0 0.2rem rgba(255, 65, 108, 0.25);
+    }
+    
+    .form-control.is-valid, .form-select.is-valid {
+        border-color: #28a745;
+    }
+    
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+    
+    .btn {
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #FF416C, #FF4B2B);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #FF4B2B, #FF416C);
+    }
+    
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #FF416C, #FF4B2B);
+    }
+    
+    .form-check-input:checked {
+        background-color: #FF416C;
+        border-color: #FF416C;
+    }
+    
+    .input-group-text {
+        border-radius: 10px 0 0 10px;
+        border: 2px solid #e9ecef;
+        border-right: none;
+    }
+    
+    .input-group .form-control {
+        border-radius: 0 10px 10px 0;
+        border-left: none;
+    }
+    
+    .input-group .form-control:focus {
+        border-left: none;
+    }
+    
+    /* Estilos para el selector de días - MEJORADO */
+    .days-selector {
+        margin: 10px 0;
+    }
+    
+    .day-btn {
+        flex: 1;
+        font-weight: bold;
+        font-size: 1.1rem;
+        padding: 0.75rem 0;
+        border: 2px solid #FF416C;
+        transition: all 0.3s ease;
+    }
+    
+    .day-btn:hover {
+        background-color: rgba(255, 65, 108, 0.1);
+        transform: scale(1.05);
+        z-index: 1;
+    }
+    
+    .btn-check:checked + .day-btn {
+        background: linear-gradient(135deg, #FF416C, #FF4B2B);
+        color: white;
+        border-color: #FF416C;
+        box-shadow: 0 2px 10px rgba(255, 65, 108, 0.3);
+    }
+    
+    .btn-check:focus + .day-btn {
+        box-shadow: 0 0 0 0.25rem rgba(255, 65, 108, 0.5);
+    }
+    
+    /* Vista previa de recurrencia */
+    .recurrence-preview {
+        border-radius: 8px;
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .d-flex {
+            flex-direction: column;
+        }
+        
+        .btn-outline-secondary {
+            margin-bottom: 1rem;
+        }
+        
+        .days-selector .btn-group {
+            flex-wrap: wrap;
+        }
+        
+        .day-btn {
+            min-width: 40px;
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+        }
+    }
+    
+    /* Tooltip personalizado */
+    [data-tooltip] {
+        position: relative;
+        cursor: help;
+    }
+    
+    [data-tooltip]:before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        display: none;
+        z-index: 1000;
+    }
+    
+    [data-tooltip]:hover:before {
+        display: block;
+    }
+    
+    /* Badge de requerido */
+    .required-field label:after {
+        content: " *";
+        color: #dc3545;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

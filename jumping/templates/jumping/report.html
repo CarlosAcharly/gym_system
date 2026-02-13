@@ -1,0 +1,486 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes - Jumping{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:dashboard' %}" class="text-decoration-none">Jumping</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Reportes</li>
+{% endblock %}
+
+{% block page_title %}
+    <i class="fas fa-chart-bar me-2 text-primary"></i>Reportes y Estadísticas
+{% endblock %}
+
+{% block page_subtitle %}
+    Análisis de clases, reservas y rendimiento
+{% endblock %}
+
+{% block header_actions %}
+    <div class="btn-group">
+        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+            <i class="fas fa-print me-1"></i> Imprimir
+        </button>
+        <button type="button" class="btn btn-outline-success" id="exportExcel">
+            <i class="fas fa-file-excel me-1"></i> Exportar Excel
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros de fecha -->
+<div class="card mb-4 fade-in">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="start" class="form-label">Fecha Inicio</label>
+                <input type="date" class="form-control" id="start" name="start" value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4">
+                <label for="end" class="form-label">Fecha Fin</label>
+                <input type="date" class="form-control" id="end" name="end" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-sync-alt me-1"></i> Actualizar Reporte
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- KPIs Principales -->
+<div class="row mb-4 fade-in">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-trampoline fa-3x text-primary mb-3"></i>
+                <h3 class="mb-2">{{ total_classes|default:0 }}</h3>
+                <p class="text-muted mb-0">Total de Clases</p>
+                <small class="text-success">
+                    <i class="fas fa-arrow-up me-1"></i>En el período
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-check fa-3x text-success mb-3"></i>
+                <h3 class="mb-2">{{ total_bookings|default:0 }}</h3>
+                <p class="text-muted mb-0">Total de Reservas</p>
+                <small class="text-info">
+                    <i class="fas fa-users me-1"></i>{{ total_bookings|default:0 }} clientes
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-dollar-sign fa-3x text-warning mb-3"></i>
+                <h3 class="mb-2">${{ total_revenue|default:0|floatformat:2 }}</h3>
+                <p class="text-muted mb-0">Ingresos Totales</p>
+                <small class="text-success">
+                    <i class="fas fa-chart-line me-1"></i>
+                    Promedio 
+                    {% if total_classes %}
+                        ${{ total_revenue|divisibleby:total_classes|floatformat:2 }}/clase
+                    {% else %}
+                        $0/clase
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-percent fa-3x text-info mb-3"></i>
+                <h3 class="mb-2">{{ attendance_rate|default:0 }}%</h3>
+                <p class="text-muted mb-0">Tasa de Asistencia</p>
+                <small class="text-muted">
+                    <i class="fas fa-user-check me-1"></i>{{ total_bookings|default:0 }} reservas
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos y análisis -->
+<div class="row mb-4 fade-in">
+    <!-- Clases por Instructor -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chalkboard-teacher me-2"></i>Clases por Instructor
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if classes_by_instructor %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Instructor</th>
+                                <th class="text-center">Clases</th>
+                                <th class="text-center">Porcentaje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for instructor in classes_by_instructor %}
+                            <tr>
+                                <td>
+                                    <strong>{{ instructor.instructor__first_name }} {{ instructor.instructor__last_name }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">{{ instructor.count }}</span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" 
+                                             style="width: {% if total_classes %}{% widthratio instructor.count total_classes 100 %}{% else %}0{% endif %}%">
+                                            {% if total_classes %}{% widthratio instructor.count total_classes 100 %}{% else %}0{% endif %}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center my-4">No hay datos disponibles</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Clases por Ubicación -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-map-marker-alt me-2"></i>Clases por Ubicación
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if classes_by_location %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ubicación</th>
+                                <th class="text-center">Clases</th>
+                                <th class="text-center">Porcentaje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for location in classes_by_location %}
+                            <tr>
+                                <td>
+                                    <strong>{{ location.location__name }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">{{ location.count }}</span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-info" 
+                                             style="width: {% if total_classes %}{% widthratio location.count total_classes 100 %}{% else %}0{% endif %}%">
+                                            {% if total_classes %}{% widthratio location.count total_classes 100 %}{% else %}0{% endif %}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center my-4">No hay datos disponibles</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Análisis detallado -->
+<div class="row fade-in">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Tendencias y Análisis
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted mb-2">Clase más popular</h6>
+                            {% if classes_by_instructor.first %}
+                            <p class="h5 mb-1">{{ classes_by_instructor.first.instructor__first_name }} {{ classes_by_instructor.first.instructor__last_name }}</p>
+                            <small class="text-success">{{ classes_by_instructor.first.count }} clases</small>
+                            {% else %}
+                            <p class="text-muted">Sin datos</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted mb-2">Sede más activa</h6>
+                            {% if classes_by_location.first %}
+                            <p class="h5 mb-1">{{ classes_by_location.first.location__name }}</p>
+                            <small class="text-success">{{ classes_by_location.first.count }} clases</small>
+                            {% else %}
+                            <p class="text-muted">Sin datos</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted mb-2">Resumen del período</h6>
+                            <p class="mb-1"><i class="fas fa-calendar me-2"></i>{{ start_date|date:"d/m/Y" }} - {{ end_date|date:"d/m/Y" }}</p>
+                            <p class="mb-1"><i class="fas fa-clock me-2"></i>{{ total_days|default:30 }} días</p>
+                            <p class="mb-0"><i class="fas fa-chart-bar me-2"></i>
+                                {% if total_days %}
+                                    {{ total_classes|divisibleby:total_days|floatformat:1 }} clases/día
+                                {% else %}
+                                    0 clases/día
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla detallada de clases -->
+<div class="row fade-in">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Detalle de Clases
+                </h5>
+                <div class="input-group w-auto">
+                    <span class="input-group-text bg-white">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control form-control-sm" id="tableSearch" placeholder="Buscar...">
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="classesTable">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Clase</th>
+                                <th>Instructor</th>
+                                <th>Ubicación</th>
+                                <th>Capacidad</th>
+                                <th>Reservas</th>
+                                <th>Ingresos</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in class_details %}
+                            <tr>
+                                <td>{{ class.date|date:"d/m/Y" }}</td>
+                                <td>
+                                    <strong>{{ class.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ class.start_time|time:"H:i" }}</small>
+                                </td>
+                                <td>{{ class.instructor.full_name }}</td>
+                                <td>{{ class.location.name }}</td>
+                                <td>{{ class.capacity }}</td>
+                                <td>
+                                    <span class="badge bg-{% if class.current_participants >= class.capacity %}danger{% elif class.current_participants >= class.capacity|add:'-5' %}warning{% else %}success{% endif %}">
+                                        {{ class.current_participants }}
+                                    </span>
+                                </td>
+                                <td>${{ class.total_revenue|default:0|floatformat:2 }}</td>
+                                <td>
+                                    {% if class.status == 'completed' %}
+                                        <span class="badge bg-success">Completada</span>
+                                    {% elif class.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    {% elif class.status == 'in_progress' %}
+                                        <span class="badge bg-info">En curso</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ class.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No hay clases en el período seleccionado</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Búsqueda en tabla
+        const searchInput = document.getElementById('tableSearch');
+        const table = document.getElementById('classesTable');
+        
+        if (searchInput && table) {
+            searchInput.addEventListener('keyup', function() {
+                const searchText = this.value.toLowerCase();
+                const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                
+                Array.from(rows).forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchText) ? '' : 'none';
+                });
+            });
+        }
+        
+        // Exportar a Excel
+        document.getElementById('exportExcel')?.addEventListener('click', function() {
+            const table = document.getElementById('classesTable');
+            const rows = [];
+            
+            // Obtener encabezados
+            const headers = [];
+            table.querySelectorAll('thead th').forEach(th => {
+                headers.push(th.textContent.trim());
+            });
+            rows.push(headers.join(','));
+            
+            // Obtener datos
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const row = [];
+                tr.querySelectorAll('td').forEach(td => {
+                    row.push('"' + td.textContent.trim().replace(/"/g, '""') + '"');
+                });
+                rows.push(row.join(','));
+            });
+            
+            // Crear y descargar archivo
+            const csv = rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'reporte_jumping_{{ start_date|date:"Y-m-d" }}_{{ end_date|date:"Y-m-d" }}.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        // Validar fechas
+        const startInput = document.getElementById('start');
+        const endInput = document.getElementById('end');
+        
+        if (startInput && endInput) {
+            startInput.addEventListener('change', function() {
+                if (this.value && endInput.value && this.value > endInput.value) {
+                    alert('La fecha de inicio no puede ser mayor que la fecha fin');
+                    this.value = '';
+                }
+            });
+            
+            endInput.addEventListener('change', function() {
+                if (this.value && startInput.value && this.value < startInput.value) {
+                    alert('La fecha fin no puede ser menor que la fecha de inicio');
+                    this.value = '';
+                }
+            });
+        }
+    });
+</script>
+
+<style>
+    .stat-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .progress {
+        border-radius: 10px;
+        background-color: #f0f0f0;
+    }
+    
+    .progress-bar {
+        border-radius: 10px;
+        transition: width 0.6s ease;
+    }
+    
+    @media print {
+        .btn-group, .card-header, footer, .navbar, .breadcrumb {
+            display: none !important;
+        }
+        
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+        
+        body {
+            background: white;
+        }
+    }
+    
+    /* Estilos para la tabla */
+    #classesTable {
+        font-size: 0.9rem;
+    }
+    
+    #classesTable th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    /* Animación para los KPIs */
+    .stat-card .fa-3x {
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover .fa-3x {
+        transform: scale(1.1);
+    }
+</style>
+{% endblock %}

@@ -8,4 +8,5 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('clients/', include('clients.urls')),
     path('notifications/', include('notifications.urls')),
+    path('jumping/', include('jumping.urls')),
 ]

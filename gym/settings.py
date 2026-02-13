@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'users',
     'clients',
     'notifications',
+    'jumping',
 ]
 
 MIDDLEWARE = [

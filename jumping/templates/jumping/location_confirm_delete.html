@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Ubicación - Jumping{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:dashboard' %}" class="text-decoration-none">Jumping</a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'jumping:location_list' %}" class="text-decoration-none">Ubicaciones</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Eliminar</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirmar Eliminación
+                </h5>
+            </div>
+            
+            <div class="card-body text-center py-4">
+                <div class="mb-4">
+                    <i class="fas fa-map-marker-alt fa-4x text-danger mb-3"></i>
+                    <h4>{{ location.name }}</h4>
+                    <p class="text-muted">{{ location.address }}</p>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ¿Estás seguro de que deseas eliminar esta ubicación?
+                </div>
+                
+                {% if location.total_classes > 0 %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>¡Atención!</strong> Esta ubicación tiene <strong>{{ location.total_classes }} clases</strong> programadas.
+                    No se puede eliminar hasta que se reasignen o eliminen esas clases.
+                </div>
+                {% endif %}
+                
+                <p class="text-muted mb-4">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta acción no se puede deshacer.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'jumping:location_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        {% if location.total_classes == 0 %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i> Sí, eliminar ubicación
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-danger" disabled>
+                            <i class="fas fa-trash me-1"></i> No se puede eliminar
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+            
+            <div class="card-footer bg-light">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Las ubicaciones con clases programadas no pueden ser eliminadas.
+                    Primero deberás cancelar o reasignar las clases.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
